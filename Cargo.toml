@@ -1,0 +1,8 @@
+[package]
+name = "miniservo"
+version = "0.1.0"
+
+[dependencies]
+log = "0.3"
+libservo = { path = "servo/components/servo" }
+glutin = "0.9"
