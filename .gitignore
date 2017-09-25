@@ -1,3 +1,23 @@
 /target/
 **/*.rs.bk
 Cargo.lock
+# stuff the build generates
+config.cache
+config.log
+config.status
+config/
+backend.*
+Makefile
+_*
+build/
+*.mk
+mozinfo.json
+subconfigures
+all-tests.json
+binaries.json
+test-installs.json
+js/
+memory/
+mfbt/
+old-configure.vars
+skip_subconfigures
