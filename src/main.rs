@@ -1,5 +1,6 @@
 
-extern crate libservo;
+extern crate miniservo;
 
 fn main() {
+    miniservo::run();
 }
