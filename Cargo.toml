@@ -10,3 +10,8 @@ glutin = "0.9"
 [[bin]]
 name = "miniservo"
 doc = false
+
+# here is how we replace the webrender crate with our own
+[replace]
+"https://github.com/servo/webrender#0.51.0" = { path = "dummy_webrender" }
+

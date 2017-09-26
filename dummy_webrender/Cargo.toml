@@ -1,0 +1,11 @@
+[package]
+name = "webrender"
+version = "0.51.0"
+
+[dependencies]
+bitflags = "0.9"
+webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"] }
+rayon = "0.8"
+gleam = "0.4.8"
+serde = "1.0"
+serde_derive = "1.0"
