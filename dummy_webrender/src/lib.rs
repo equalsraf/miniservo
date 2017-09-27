@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate bitflags;
 extern crate webrender_api;
-use webrender_api::{DeviceUintSize, RenderNotifier, PipelineId, Epoch, ExternalImageId, ColorF, BlobImageRenderer, ApiMsg, RenderApiSender, channel};
+use webrender_api::{DeviceUintSize, RenderNotifier, PipelineId, Epoch, ExternalImageId, ColorF, BlobImageRenderer, ApiMsg, RenderApiSender, channel, IdNamespace};
 
 extern crate gleam;
 use gleam::gl;
@@ -16,6 +16,7 @@ use std::fmt::Debug;
 use std::thread;
 use std::fs::File;
 
+#[derive(Debug)]
 pub enum RendererError {
     Io(std::io::Error),
 }
@@ -27,7 +28,6 @@ impl From<std::io::Error> for RendererError {
 pub struct Renderer {
     gl: Rc<gl::Gl>,
     debug_flags: DebugFlags,
-//    api_rx: channel::MsgReceiver<ApiMsg>,
 //    payload_rx: channel::PayloadReceiver,
 }
 
@@ -40,23 +40,49 @@ impl Renderer {
         let renderer = Renderer {
             gl: gl,
             debug_flags: options.debug_flags,
-//            api_rx: api_rx,
-//            payload_rx: payload_rx,
         };
 
         thread::spawn(move || {
+            let mut next_namespace_id = IdNamespace(1);
             loop {
-                match api_rx.recv() {
-                    Err(_) => break,
-                    Ok(_) => (),
+                let msg = match api_rx.recv() {
+                    Err(err) => {
+                        println!("Error reading from api receiver: {:?}", err);
+                        break;
+                    }
+                    Ok(msg) => {
+                        println!("api -> {:?}", msg);
+                        msg
+                    }
+                };
+
+                match msg {
+                    ApiMsg::ShutDown => break,
+                    ApiMsg::GetGlyphDimensions(_, _, tx) => {
+                        let glyph_dimensions = Vec::new();
+                        let _ = tx.send(glyph_dimensions);
+                    }
+                    ApiMsg::GetGlyphIndices(_, _, tx) => {
+                        let glyph_indices = Vec::new();
+                        let _ = tx.send(glyph_indices);
+                    }
+                    ApiMsg::CloneApi(sender) => {
+                        let namespace = next_namespace_id;
+                        next_namespace_id = IdNamespace(namespace.0 + 1);
+                        let _ = sender.send(namespace);
+                    }
+                    _ => (),
                 }
             }
         });
         thread::spawn(move || {
+            let mut receivers = Vec::new();
             loop {
                 match payload_rx.recv() {
                     Err(_) => break,
-                    Ok(_) => (),
+                    Ok(r) => {
+                        receivers.push(r);
+                    }
                 }
             }
         });
@@ -86,7 +112,7 @@ impl Renderer {
     }
 }
 
-// the following come froms the webrender crate
+// the following come from the webrender crate
 
 bitflags! {
     #[derive(Default)]
@@ -171,9 +197,17 @@ pub trait ApiRecordingReceiver: Send + Debug {
     fn write_msg(&mut self, frame: u32, msg: &ApiMsg);
     fn write_payload(&mut self, frame: u32, data: &[u8]);
 }
+#[derive(Debug)]
 pub struct BinaryRecorder {}
 impl BinaryRecorder {
     pub fn new(dest: &PathBuf) -> BinaryRecorder {
         BinaryRecorder {}
+    }
+}
+impl ApiRecordingReceiver for BinaryRecorder {
+    fn write_msg(&mut self, _: u32, _msg: &ApiMsg) {
+    }
+
+    fn write_payload(&mut self, _: u32, _data: &[u8]) {
     }
 }
